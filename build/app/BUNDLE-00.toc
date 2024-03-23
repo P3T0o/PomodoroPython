@@ -1,0 +1,1 @@
+([('app', '/Users/quentin/Dev/Betises/Pomodoro/dist/app', 'EXECUTABLE')],)
