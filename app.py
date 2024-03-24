@@ -63,7 +63,7 @@ class TimerApp(QWidget):
         self.lineSettings.addLayout(self.lineBigBreak)
         self.layout.addLayout(self.lineSettings)
 
-        self.label = QLabel("0")
+        self.label = QLabel("")
         self.layout.addWidget(self.label)
 
         self.resetButton = QPushButton("Debuter le pomodoro")
@@ -77,8 +77,10 @@ class TimerApp(QWidget):
     def initTimer(self):
         self.timer = QTimer(self)
         if self.bigBreakTime == True:
+            self.cycle = 0
             self.timer.timeout.connect(self.updateTimerBigBreak)
         elif self.workTime == True:
+            self.cycle += 1
             self.timer.timeout.connect(self.updateTimerWork)
         elif self.workTime == False:
             self.timer.timeout.connect(self.updateTimerBreak)
@@ -88,17 +90,18 @@ class TimerApp(QWidget):
     def updateTimerWork(self):
         self.cycleLabel.setText(f"Cycle {self.cycle} / 4")
         self.seconds += 1
-        self.label.setText(f"{self.seconds} secondes de travail")
+        self.label.setText(f"{self.seconds // 60} minutes et {self.seconds % 60} secondes de travail")
 
-        if self.cycle == 4:
+        if self.cycle > 4:
             self.seconds = 0
             self.workTime = False
             self.bigBreakTime = True
+            self.showNotificationStartBigBreak()
             self.playSoundBigBreak()
             self.timer.timeout.disconnect(self.updateTimerWork)
             self.initTimer()  # Réinitialise et redémarre un nouveau cycle
 
-        if self.seconds == self.inputTimeWork.value():  # Multiplie par 60 pour convertir les minutes en secondes
+        if self.seconds == self.inputTimeWork.value() * 60:  # Multiplie par 60 pour convertir les minutes en secondes
             self.playSoundBreak()
             self.showNotificationEndWork()
             self.seconds = 0
@@ -109,23 +112,23 @@ class TimerApp(QWidget):
     def updateTimerBreak(self):
         self.cycleLabel.setText(f"Cycle {self.cycle} / 4")
         self.seconds += 1
-        self.label.setText(f"{self.seconds} secondes de pause")
+        self.label.setText(f"{self.seconds // 60} minutes et {self.seconds % 60} secondes de pause")
 
-        if self.seconds == self.inputTimeBreak.value():  # Multiplie par 60 pour convertir les minutes en secondes
-            self.cycle += 1
-            self.playSoundWork()
-            self.showNotificationEndBreak()
+        if self.seconds == self.inputTimeBreak.value() * 60:  # Multiplie par 60 pour convertir les minutes en secondes
+            if self.cycle <= 3:
+                self.showNotificationEndBreak()
+                self.playSoundWork()
             self.seconds = 0
             self.workTime = True
             self.timer.timeout.disconnect(self.updateTimerBreak)  # Se déconnecte de la fonction actuelle
             self.initTimer()  # Réinitialise et redémarre le minuteur avec les paramètres pour le travail
 
     def updateTimerBigBreak(self):
-        self.cycleLabel.setText(f"Cycle {self.cycle} / 4")
+        self.cycleLabel.setText(f"Cycle de grande pause")
         self.seconds += 1
-        self.label.setText(f"{self.seconds} secondes de grande pause")
+        self.label.setText(f"{self.seconds // 60} minutes et {self.seconds % 60} secondes de grande pause")
 
-        if self.seconds == self.inputTimeBigBreak.value():  # Multiplie par 60 pour convertir les minutes en secondes
+        if self.seconds == self.inputTimeBigBreak.value() * 60:  # Multiplie par 60 pour convertir les minutes en secondes
             self.cycle = 0
             self.playSoundWork()
             self.showNotificationEndBreak()
@@ -154,13 +157,19 @@ class TimerApp(QWidget):
 
     def showNotificationEndWork(self):
         title = "Moment pause !"
-        message = f"{self.inputTimeWork.value()} secondes se sont écoulées ! Tu mérite une pause."
+        message = f"{self.inputTimeWork.value()} minutes se sont écoulées ! Tu mérite une pause."
         command = f'''osascript -e 'display notification "{message}" with title "{title}"' '''
         subprocess.run(command, shell=True)
 
     def showNotificationEndBreak(self):
-        title = "On reprend !"
-        message = f"{self.inputTimeBreak.value()} secondes se sont écoulées ! Retourne au travail."
+        title = f"Cycle {self.cycle+1} / 4 - On reprend !"
+        message = f"{self.inputTimeBreak.value()} minutes se sont écoulées ! Retourne au travail."
+        command = f'''osascript -e 'display notification "{message}" with title "{title}"' '''
+        subprocess.run(command, shell=True)
+
+    def showNotificationStartBigBreak(self):
+        title = "Debut de la grande pause !"
+        message = f"Les 4 cycles se sont terminés, tu mérite une grande pause."
         command = f'''osascript -e 'display notification "{message}" with title "{title}"' '''
         subprocess.run(command, shell=True)
 
