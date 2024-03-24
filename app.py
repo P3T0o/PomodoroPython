@@ -24,7 +24,6 @@ class TimerApp(QWidget):
         self.workTime = True
         self.bigBreakTime = False
         self.cycle = 0
-        self.isActive = False
 
     def initUI(self):
         self.setWindowTitle("Pomodoro by P3T0")
@@ -87,6 +86,7 @@ class TimerApp(QWidget):
         self.resetEntireButton.clicked.connect(self.resetEntireTimer)
         self.layout.addWidget(self.resetEntireButton)
 
+        self.resetEntireButton.hide()
         self.setLayout(self.layout)
 
     def initTimer(self):
@@ -189,6 +189,10 @@ class TimerApp(QWidget):
         subprocess.run(command, shell=True)
 
     def resetEntireTimer(self):
+
+        self.resetButton.show()
+        self.resetEntireButton.hide()
+
         # Arrête le minuteur
         if self.timer.isActive():
             self.timer.stop()
@@ -206,10 +210,17 @@ class TimerApp(QWidget):
         self.cycle = 0
 
         # Met à jour les affichages de texte
-        self.label.setText("0")
+        self.label.setText("")
         self.cycleLabel.setText("Cycle 0/4")
 
     def startTimer(self):
+        isTimerActivate = True
+        if isTimerActivate == True:
+            self.resetButton.hide()
+            self.resetEntireButton.show()
+        else:
+            self.resetButton.hide()
+            self.resetEntireButton.hide()
         self.initTimer()
 
 if __name__ == '__main__':
