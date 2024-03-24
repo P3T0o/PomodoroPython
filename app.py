@@ -1,8 +1,20 @@
 import sys
+import os
 import subprocess
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QSpinBox
 from PyQt5.QtCore import QTimer
 from PyQt5.QtMultimedia import QSound
+
+
+def resource_path(relative_path):
+    """ Retourne le chemin d'accès absolu à la ressource, fonctionne pour le développement et pour les exécutables PyInstaller """
+    try:
+        # PyInstaller crée un dossier temporaire _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 class TimerApp(QWidget):
     def __init__(self):
@@ -12,13 +24,12 @@ class TimerApp(QWidget):
         self.workTime = True
         self.bigBreakTime = False
         self.cycle = 0
+        self.isActive = False
 
     def initUI(self):
         self.setWindowTitle("Pomodoro by P3T0")
         self.layout = QVBoxLayout()
 
-        self.title = QLabel("Regle ton Pomodoro")
-        self.layout.addWidget(self.title)
         self.cycleLabel = QLabel("Cycle 0/4")
         self.layout.addWidget(self.cycleLabel)
 
@@ -70,7 +81,11 @@ class TimerApp(QWidget):
         self.resetButton.clicked.connect(self.startTimer)
         self.layout.addWidget(self.resetButton)
 
-        self.setFixedSize(400, 200)
+        self.setFixedSize(400, 250)
+
+        self.resetEntireButton = QPushButton("Réinitialiser complètement")
+        self.resetEntireButton.clicked.connect(self.resetEntireTimer)
+        self.layout.addWidget(self.resetEntireButton)
 
         self.setLayout(self.layout)
 
@@ -144,15 +159,15 @@ class TimerApp(QWidget):
         self.label.setText("0")
 
     def playSoundWork(self):
-        self.sound = QSound("work.wav")
+        self.sound = QSound(resource_path("work.wav"))
         self.sound.play()
 
     def playSoundBreak(self):
-        self.sound = QSound("break.wav")
+        self.sound = QSound(resource_path("break.wav"))
         self.sound.play()
 
     def playSoundBigBreak(self):
-        self.sound = QSound("bigbreak.wav")
+        self.sound = QSound(resource_path("bigbreak.wav"))
         self.sound.play()
 
     def showNotificationEndWork(self):
@@ -172,6 +187,27 @@ class TimerApp(QWidget):
         message = f"Les 4 cycles se sont terminés, tu mérite une grande pause."
         command = f'''osascript -e 'display notification "{message}" with title "{title}"' '''
         subprocess.run(command, shell=True)
+
+    def resetEntireTimer(self):
+        # Arrête le minuteur
+        if self.timer.isActive():
+            self.timer.stop()
+
+        # Déconnecte tout signal potentiellement connecté
+        try:
+            self.timer.timeout.disconnect()
+        except TypeError:  # Si rien n'est connecté, cette erreur sera levée
+            pass
+
+        # Réinitialise les variables d'état
+        self.seconds = 0
+        self.workTime = True
+        self.bigBreakTime = False
+        self.cycle = 0
+
+        # Met à jour les affichages de texte
+        self.label.setText("0")
+        self.cycleLabel.setText("Cycle 0/4")
 
     def startTimer(self):
         self.initTimer()
